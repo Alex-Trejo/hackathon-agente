@@ -13,6 +13,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- BARRA LATERAL (INFORMACIÓN DEL EQUIPO) ---
+with st.sidebar:
+    st.header("🇪🇨 hackIAthon Ecuador")
+    st.subheader("🚀 Grupo: KINEX")
+    st.markdown("**Integrantes:**")
+    st.markdown("- JUAN PABLO PINZA ARMIJOS\n- ALEX FERNANDO TREJO DUQUE")
+    st.divider()
+    st.info("📍 **Reto 1:** Agente de Pre-Autorización Quirúrgica en Tiempo Real")
+    st.success("Herramientas: Notion API, OpenAI & Streamlit")
+    
 # --- CABECERA ---
 st.title("🛡️ Sistema Agéntico de Pre-Autorizaciones")
 st.write("Agente automatizado que audita informes médicos, cruza datos con el CRM en Notion y dictamina coberturas.")
@@ -116,7 +126,7 @@ with tab3:
     with st.form("form_nuevo_paciente", clear_on_submit=False):
         col1, col2 = st.columns(2)
         with col1:
-            new_cedula = st.text_input("Número de Cédula (10 dígitos)", key="input_cedula")
+            new_cedula = st.text_input("Número de Cédula (10 dígitos)", max_chars=10, key="input_cedula")
             new_nombre = st.text_input("Nombre Completo (Sin números)", key="input_nombre")
         with col2:
             new_plan = st.selectbox("Plan Médico", ["Básico", "Premium", "VIP"], key="input_plan")
