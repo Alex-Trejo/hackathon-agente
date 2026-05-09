@@ -107,13 +107,14 @@ with tab3:
     st.subheader("➕ Registrar Nuevo Asegurado")
     st.write("Agrega un paciente a la base de datos de Notion directamente desde este formulario.")
     
-    with st.form("form_nuevo_paciente"):
+    # EL TRUCO ESTÁ AQUÍ: Agregamos clear_on_submit=True
+    with st.form("form_nuevo_paciente", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             new_cedula = st.text_input("Número de Cédula (Ej: 0987654321)")
             new_nombre = st.text_input("Nombre Completo (Ej: MARÍA PÉREZ)")
         with col2:
-            new_plan = st.selectbox("Plan Médico", ["Básico", "Premium", "VIP"])
+            new_plan = st.selectbox("Plan Médico",["Básico", "Premium", "VIP"])
             new_carencia = st.number_input("Meses de Carencia Cumplidos", min_value=0, step=1, value=0)
         
         new_procedimientos = st.text_area("Procedimientos Cubiertos (separados por coma, Ej: Apendicectomía, Hernia, Parto)")
