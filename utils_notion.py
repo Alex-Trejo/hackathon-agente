@@ -31,7 +31,7 @@ def obtener_datos_poliza(cedula: str):
         data = response.json()
         
         if not data.get("results"):
-            return None # Paciente no encontrado
+            return None 
             
         propiedades = data["results"][0]["properties"]
         nombre = propiedades.get("Nombre", {}).get("rich_text",[{}])[0].get("text", {}).get("content", "Desconocido") if propiedades.get("Nombre", {}).get("rich_text") else "Desconocido"
@@ -47,12 +47,11 @@ def obtener_datos_poliza(cedula: str):
         raise Exception(f"Error leyendo CRM Notion: {str(e)}")
 
 def listar_pacientes():
-    """Obtiene TODOS los pacientes de la base de datos de Notion para el Frontend"""
+    """Obtiene TODOS los pacientes de la base de datos de Notion"""
     try:
         data_source_id = _get_data_source_id()
         query_url = f"https://api.notion.com/v1/data_sources/{data_source_id}/query"
         
-        # Payload vacío para traer todos los registros
         response = requests.post(query_url, headers=HEADERS, json={})
         data = response.json()
         
@@ -73,5 +72,30 @@ def listar_pacientes():
                 })
         return pacientes
     except Exception as e:
-        print(f"Error listando pacientes: {e}")
         return[]
+
+def agregar_paciente(cedula: str, nombre: str, plan: str, carencia: int, procedimientos: str):
+    """Escribe un nuevo paciente en la tabla de Notion"""
+    try:
+        data_source_id = _get_data_source_id()
+        url = "https://api.notion.com/v1/pages"
+        
+        # Estructura estricta que exige Notion para crear páginas en un Data Source
+        payload = {
+            "parent": { "type": "data_source_id", "data_source_id": data_source_id },
+            "properties": {
+                "Cédula": {"title":[{"text": {"content": cedula}}]},
+                "Nombre": {"rich_text": [{"text": {"content": nombre}}]},
+                "Plan": {"select": {"name": plan}},
+                "Carencia Cumplida": {"number": carencia},
+                "Procedimientos Cubiertos": {"rich_text": [{"text": {"content": procedimientos}}]}
+            }
+        }
+        
+        response = requests.post(url, headers=HEADERS, json=payload)
+        
+        if response.status_code != 200:
+            raise Exception(f"Fallo al agregar a Notion: {response.text}")
+        return True
+    except Exception as e:
+        raise Exception(f"Error creando registro en Notion: {str(e)}")

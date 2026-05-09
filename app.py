@@ -1,7 +1,7 @@
 import streamlit as st
 from utils_pdf import extraer_texto_pdf
 from utils_ia import extraer_datos_paciente, evaluar_auditoria
-from utils_notion import obtener_datos_poliza, listar_pacientes
+from utils_notion import obtener_datos_poliza, listar_pacientes, agregar_paciente
 
 st.set_page_config(page_title="Agente IA Aseguradora", page_icon="🛡️", layout="wide")
 
@@ -18,7 +18,7 @@ st.title("🛡️ Sistema Agéntico de Pre-Autorizaciones")
 st.write("Agente automatizado que audita informes médicos, cruza datos con el CRM en Notion y dictamina coberturas.")
 
 # --- PESTAÑAS DEL DASHBOARD ---
-tab1, tab2, tab3 = st.tabs(["🩺 Auditoría IA", "📊 CRM de Pacientes (Notion)", "ℹ️ Reglas y Plantillas"])
+tab1, tab2, tab3, tab4 = st.tabs(["🩺 Auditoría IA", "📊 CRM de Pacientes (Notion)", "➕ Alta de Asegurado", "ℹ️ Reglas y Plantillas"])
 
 # ==========================================
 # PESTAÑA 1: AUDITORÍA (SISTEMA PRINCIPAL)
@@ -32,7 +32,8 @@ with tab1:
         
         if archivo_subido:
             st.success("✅ Archivo PDF cargado correctamente en memoria.")
-            iniciar = st.button("🚀 Procesar con Inteligencia Artificial", type="primary", use_container_width=True)
+            # Corrección del Warning (width='stretch')
+            iniciar = st.button("🚀 Procesar con Inteligencia Artificial", type="primary", width="stretch")
             
     with col_der:
         if archivo_subido and iniciar:
@@ -89,19 +90,51 @@ with tab2:
     st.subheader("📊 Base de Datos de Asegurados (Live from Notion)")
     st.write("Esta tabla consulta en tiempo real la API de Notion para mostrar los pacientes vigentes.")
     
-    if st.button("🔄 Actualizar Datos desde Notion"):
-        pass # Streamlit recarga la página automáticamente
+    if st.button("🔄 Actualizar Tabla"):
+        pass 
         
     pacientes_db = listar_pacientes()
     if pacientes_db:
-        st.dataframe(pacientes_db, use_container_width=True)
+        # Corrección del Warning
+        st.dataframe(pacientes_db, width="stretch")
     else:
         st.warning("No se encontraron pacientes o hay un problema de conexión con Notion.")
 
 # ==========================================
-# PESTAÑA 3: REGLAS Y PLANTILLAS (UX/UI)
+# PESTAÑA 3: FORMULARIO ALTA PACIENTE (NUEVO)
 # ==========================================
 with tab3:
+    st.subheader("➕ Registrar Nuevo Asegurado")
+    st.write("Agrega un paciente a la base de datos de Notion directamente desde este formulario.")
+    
+    with st.form("form_nuevo_paciente"):
+        col1, col2 = st.columns(2)
+        with col1:
+            new_cedula = st.text_input("Número de Cédula (Ej: 0987654321)")
+            new_nombre = st.text_input("Nombre Completo (Ej: MARÍA PÉREZ)")
+        with col2:
+            new_plan = st.selectbox("Plan Médico", ["Básico", "Premium", "VIP"])
+            new_carencia = st.number_input("Meses de Carencia Cumplidos", min_value=0, step=1, value=0)
+        
+        new_procedimientos = st.text_area("Procedimientos Cubiertos (separados por coma, Ej: Apendicectomía, Hernia, Parto)")
+        
+        submit_btn = st.form_submit_button("💾 Guardar Paciente en Notion")
+        
+        if submit_btn:
+            if new_cedula.strip() and new_nombre.strip():
+                with st.spinner("Escribiendo en la base de datos de Notion..."):
+                    try:
+                        agregar_paciente(new_cedula, new_nombre, new_plan, int(new_carencia), new_procedimientos)
+                        st.success("¡Paciente agregado con éxito! Ve a la pestaña 'CRM de Pacientes' para confirmarlo.")
+                    except Exception as e:
+                        st.error(f"Ocurrió un error: {str(e)}")
+            else:
+                st.warning("⚠️ La Cédula y el Nombre son obligatorios.")
+
+# ==========================================
+# PESTAÑA 4: REGLAS Y PLANTILLAS (UX/UI)
+# ==========================================
+with tab4:
     st.subheader("ℹ️ ¿Cómo funciona el Agente de Auditoría?")
     
     st.markdown("""
