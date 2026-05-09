@@ -101,37 +101,77 @@ with tab2:
         st.warning("No se encontraron pacientes o hay un problema de conexión con Notion.")
 
 # ==========================================
-# PESTAÑA 3: FORMULARIO ALTA PACIENTE (NUEVO)
+# PESTAÑA 3: FORMULARIO ALTA PACIENTE 
 # ==========================================
 with tab3:
     st.subheader("➕ Registrar Nuevo Asegurado")
     st.write("Agrega un paciente a la base de datos de Notion directamente desde este formulario.")
     
-    # EL TRUCO ESTÁ AQUÍ: Agregamos clear_on_submit=True
-    with st.form("form_nuevo_paciente", clear_on_submit=True):
+    # 1. Mostramos el mensaje de éxito si existe en la memoria (sobrevive al recargar la página)
+    if st.session_state.get("exito_guardado", False):
+        st.success("✅ ¡Paciente agregado con éxito! Ve a la pestaña 'CRM de Pacientes' para confirmarlo.")
+        st.session_state["exito_guardado"] = False  # Lo apagamos para que no salga siempre
+        
+    # 2. Formulario SIN clear_on_submit (controlaremos el borrado nosotros mismos)
+    with st.form("form_nuevo_paciente", clear_on_submit=False):
         col1, col2 = st.columns(2)
         with col1:
-            new_cedula = st.text_input("Número de Cédula (Ej: 0987654321)")
-            new_nombre = st.text_input("Nombre Completo (Ej: MARÍA PÉREZ)")
+            new_cedula = st.text_input("Número de Cédula (10 dígitos)", key="input_cedula")
+            new_nombre = st.text_input("Nombre Completo (Sin números)", key="input_nombre")
         with col2:
-            new_plan = st.selectbox("Plan Médico",["Básico", "Premium", "VIP"])
-            new_carencia = st.number_input("Meses de Carencia Cumplidos", min_value=0, step=1, value=0)
+            new_plan = st.selectbox("Plan Médico", ["Básico", "Premium", "VIP"], key="input_plan")
+            new_carencia = st.number_input("Meses de Carencia Cumplidos", min_value=0, step=1, key="input_carencia")
         
-        new_procedimientos = st.text_area("Procedimientos Cubiertos (separados por coma, Ej: Apendicectomía, Hernia, Parto)")
+        new_procedimientos = st.text_area("Procedimientos Cubiertos (separados por coma)", key="input_proc")
         
         submit_btn = st.form_submit_button("💾 Guardar Paciente en Notion")
         
         if submit_btn:
-            if new_cedula.strip() and new_nombre.strip():
+            # --- INICIO DE VALIDACIONES ---
+            errores =[]
+            
+            # Validación de Cédula (Solo números y 10 dígitos)
+            if not new_cedula.isdigit():
+                errores.append("⚠️ La Cédula debe contener SOLO números (sin guiones ni espacios).")
+            elif len(new_cedula) != 10:
+                errores.append("⚠️ La Cédula debe tener exactamente 10 dígitos.")
+                
+            # Validación de Nombre (No vacío, solo letras y espacios)
+            nombre_limpio = new_nombre.replace(" ", "")
+            if not new_nombre.strip():
+                errores.append("⚠️ El Nombre no puede estar vacío.")
+            elif not nombre_limpio.isalpha():
+                errores.append("⚠️ El Nombre solo debe contener letras.")
+                
+            # Validación de Procedimientos
+            if not new_procedimientos.strip():
+                errores.append("⚠️ Debes ingresar al menos un procedimiento cubierto.")
+                
+            # --- EJECUCIÓN O MUESTRA DE ERRORES ---
+            if errores:
+                # Si hay errores, los mostramos y el formulario NO se borra
+                for error in errores:
+                    st.error(error)
+            else:
+                # Si pasa las validaciones, guardamos en Notion
                 with st.spinner("Escribiendo en la base de datos de Notion..."):
                     try:
-                        agregar_paciente(new_cedula, new_nombre, new_plan, int(new_carencia), new_procedimientos)
-                        st.success("¡Paciente agregado con éxito! Ve a la pestaña 'CRM de Pacientes' para confirmarlo.")
+                        # Guardamos el nombre en mayúsculas por orden
+                        agregar_paciente(new_cedula, new_nombre.upper(), new_plan, int(new_carencia), new_procedimientos)
+                        
+                        # VACIAR CAMPOS MANUALMENTE SOLO PORQUE FUE EXITOSO
+                        st.session_state["input_cedula"] = ""
+                        st.session_state["input_nombre"] = ""
+                        st.session_state["input_plan"] = "Básico"
+                        st.session_state["input_carencia"] = 0
+                        st.session_state["input_proc"] = ""
+                        
+                        # Activar bandera de éxito y recargar la página para limpiar visualmente
+                        st.session_state["exito_guardado"] = True
+                        st.rerun()
+                        
                     except Exception as e:
-                        st.error(f"Ocurrió un error: {str(e)}")
-            else:
-                st.warning("⚠️ La Cédula y el Nombre son obligatorios.")
-
+                        st.error(f"Ocurrió un error al guardar: {str(e)}")
 # ==========================================
 # PESTAÑA 4: REGLAS Y PLANTILLAS (UX/UI)
 # ==========================================
